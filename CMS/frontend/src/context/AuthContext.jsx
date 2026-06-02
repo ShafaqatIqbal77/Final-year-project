@@ -1,0 +1,55 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { api, clearStoredSession, setStoredSessionId } from '../api';
+
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    try {
+      const data = await api('auth/me');
+      setUser(data.user && data.ok ? data.user : null);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const login = useCallback(async (email, password) => {
+    clearStoredSession();
+    const data = await api('auth/login', { method: 'POST', body: { email, password } });
+    if (data.session_id) setStoredSessionId(data.session_id);
+    setUser(data.user);
+    return data.user;
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await api('auth/logout', { method: 'POST' });
+    } catch {
+      /* ignore */
+    }
+    clearStoredSession();
+    setUser(null);
+  }, []);
+
+  const value = useMemo(
+    () => ({ user, loading, login, logout, refresh }),
+    [user, loading, login, logout, refresh]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth outside AuthProvider');
+  return ctx;
+}
