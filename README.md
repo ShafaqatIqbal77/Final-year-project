@@ -3,7 +3,38 @@
 [GitHub Repository](https://github.com/ShafaqatIqbal77/Final-year-project)
 A comprehensive web-based College Management System built with React (frontend) and PHP (backend), designed to manage students, courses, attendance, marks, and administrative tasks.
 
-## Features
+## 🚀 Current Status
+
+**Deployment Status**: ✅ Running Locally
+- **Backend Server**: Running on `http://localhost:8000` (PHP 8.0 via XAMPP)
+- **Frontend Server**: Running on `http://localhost:5173` (React/Vite)
+- **Database**: MySQL (via XAMPP)
+- **Last Updated**: June 14, 2026
+
+### Quick Access
+- Frontend Application: http://localhost:5173
+- Backend API: http://localhost:8000
+- PhpMyAdmin (if configured): http://localhost/phpmyadmin
+
+## ⚡ Quick Start
+
+To run both backend and frontend servers:
+
+```bash
+# Terminal 1 - Start Backend (PHP)
+cd C:\Users\hp\Desktop\CMS
+php -S localhost:8000 -t backend
+
+# Terminal 2 - Start Frontend (React/Vite)
+cd C:\Users\hp\Desktop\CMS\frontend
+npm run dev
+```
+
+Both servers will be running in parallel:
+- Backend listens on port **8000**
+- Frontend listens on port **5173**
+
+
 
 ### Student Management
 - Student account creation and authentication
