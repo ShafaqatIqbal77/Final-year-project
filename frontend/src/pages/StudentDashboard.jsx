@@ -10,6 +10,7 @@ const NAV = [
   { id: 'catalog', label: 'Course Catalog' },
   { id: 'courses', label: 'My Courses' },
   { id: 'course', label: 'Course Workspace' },
+  { id: 'fees', label: 'My Fees' },
 ];
 
 export default function StudentDashboard() {
@@ -26,6 +27,9 @@ export default function StudentDashboard() {
   const [attendance, setAttendance] = useState(null);
   const [marks, setMarks] = useState([]);
   const [finalRes, setFinalRes] = useState(null);
+  const [fees, setFees] = useState([]);
+  const [feeSummary, setFeeSummary] = useState(null);
+  const [selectedFee, setSelectedFee] = useState(null);
 
   const approved = enrollments.filter((e) => e.status === 'approved');
 
@@ -35,6 +39,7 @@ export default function StudentDashboard() {
   const loadAttendance = useCallback(async () => { if (!offeringId) { setAttendance(null); return; } const d = await api('attendance', { params: { course_offering_id: offeringId } }); setAttendance(d); }, [offeringId]);
   const loadMarks = useCallback(async () => { if (!offeringId) { setMarks([]); return; } const d = await api('marks', { params: { course_offering_id: offeringId } }); setMarks(d.marks || []); }, [offeringId]);
   const loadFinal = useCallback(async () => { if (!offeringId) { setFinalRes(null); return; } const d = await api('final-results', { params: { course_offering_id: offeringId } }); setFinalRes(d.result || null); }, [offeringId]);
+  const loadFees = useCallback(async () => { const d = await api('finance/my-fees'); setFees(d.fees || []); setFeeSummary(d.summary || null); }, []);
 
   useEffect(() => {
     setErr(''); setLoading(true);
@@ -42,10 +47,11 @@ export default function StudentDashboard() {
       try {
         if (tab === 'catalog') await loadCatalog();
         if (tab === 'courses') await loadEnrollments();
+        if (tab === 'fees') await loadFees();
       } catch (e) { setErr(e.message); }
       finally { setLoading(false); }
     })();
-  }, [tab, loadCatalog, loadEnrollments]);
+  }, [tab, loadCatalog, loadEnrollments, loadFees]);
 
   useEffect(() => { if (approved.length && !offeringId) setOfferingId(String(approved[0].course_offering_id)); }, [approved, offeringId]);
 
@@ -259,6 +265,120 @@ export default function StudentDashboard() {
                   <div className="empty-state"><p>Final grades appear here after the administrator approves them.</p></div>
                 )}
               </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {tab === 'fees' && (
+        <div className="fade-in">
+          <header className="dashboard-header">
+            <div>
+              <h1 className="page-title">My Fees</h1>
+              <p className="page-subtitle">View your fee history, pending dues, and download receipts.</p>
+            </div>
+          </header>
+
+          {loading ? <div className="loading-state"><Spinner /></div> : (
+            <>
+              {/* Fee Summary Cards */}
+              {feeSummary && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-blue-600 font-medium">Total Amount</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-800">${Number(feeSummary.total_amount).toFixed(2)}</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-green-600 font-medium">Total Paid</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-800">${Number(feeSummary.total_paid).toFixed(2)}</p>
+                  </div>
+                  <div className={`bg-gradient-to-br ${feeSummary.total_remaining > 0 ? 'from-orange-50 to-orange-100 border-orange-200' : 'from-emerald-50 to-emerald-100 border-emerald-200'} rounded-xl p-6 border`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`w-10 h-10 ${feeSummary.total_remaining > 0 ? 'bg-orange-500' : 'bg-emerald-500'} rounded-lg flex items-center justify-center`}>
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span className={`text-sm ${feeSummary.total_remaining > 0 ? 'text-orange-600' : 'text-emerald-600'} font-medium`}>Remaining</span>
+                    </div>
+                    <p className={`text-2xl font-bold ${feeSummary.total_remaining > 0 ? 'text-orange-600' : 'text-emerald-600'}`}>${Number(feeSummary.total_remaining).toFixed(2)}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Fees Table */}
+              <div className="card glass">
+                <div className="table-wrap">
+                  <table className="data">
+                    <thead><tr><th>Fee Type</th><th>Amount</th><th>Discount</th><th>Fine</th><th>Paid</th><th>Remaining</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {fees.map((f) => (
+                        <tr key={f.id}>
+                          <td style={{ fontWeight: 600 }}>{f.fee_type}</td>
+                          <td>${Number(f.amount).toFixed(2)}</td>
+                          <td>${Number(f.discount).toFixed(2)}</td>
+                          <td>${Number(f.fine).toFixed(2)}</td>
+                          <td>${Number(f.paid_amount).toFixed(2)}</td>
+                          <td style={{ fontWeight: 600, color: f.remaining_amount > 0 ? 'var(--danger)' : 'var(--success)' }}>${Number(f.remaining_amount).toFixed(2)}</td>
+                          <td>{new Date(f.due_date).toLocaleDateString()}</td>
+                          <td><span className={`badge badge-${f.status}`}>{f.status.replace('_', ' ')}</span></td>
+                          <td>
+                            {f.status === 'paid' && (
+                              <>
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={async () => { try { const d = await api('finance/fee-receipt', { params: { id: f.id } }); setSelectedFee(d); } catch (e) { setErr(e.message); } }}>View Receipt</button>
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => window.open(`/api/finance/fee-receipt?id=${f.id}&format=pdf`, '_blank')}>Download PDF</button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {fees.length === 0 && <tr><td colSpan={9} className="muted" style={{ textAlign: 'center', padding: '2rem' }}>No fee records found.</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Fee Receipt Modal */}
+              {selectedFee && (
+                <div className="card glass" style={{ marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3>Fee Receipt</h3>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelectedFee(null)}>Close</button>
+                  </div>
+                  <div style={{ padding: '1rem', border: '1px solid var(--border-light)', borderRadius: '8px' }}>
+                    <p><strong>Student:</strong> {selectedFee.student?.full_name}</p>
+                    <p><strong>Student Code:</strong> {selectedFee.student?.student_code}</p>
+                    <p><strong>Email:</strong> {selectedFee.student?.email}</p>
+                    <p><strong>Phone:</strong> {selectedFee.student?.phone || '-'}</p>
+                    <hr style={{ margin: '1rem 0' }} />
+                    <p><strong>Fee Type:</strong> {selectedFee.fee.fee_type}</p>
+                    <p><strong>Amount:</strong> ${Number(selectedFee.fee.amount).toFixed(2)}</p>
+                    <p><strong>Discount:</strong> ${Number(selectedFee.fee.discount).toFixed(2)}</p>
+                    <p><strong>Fine:</strong> ${Number(selectedFee.fee.fine).toFixed(2)}</p>
+                    <p><strong>Paid Amount:</strong> ${Number(selectedFee.fee.paid_amount).toFixed(2)}</p>
+                    <p><strong>Remaining Amount:</strong> ${Number(selectedFee.fee.remaining_amount).toFixed(2)}</p>
+                    <p><strong>Due Date:</strong> {new Date(selectedFee.fee.due_date).toLocaleDateString()}</p>
+                    <p><strong>Payment Date:</strong> {selectedFee.fee.payment_date ? new Date(selectedFee.fee.payment_date).toLocaleDateString() : '-'}</p>
+                    <p><strong>Status:</strong> {selectedFee.fee.status.replace('_', ' ')}</p>
+                    {selectedFee.fee.remarks && <p><strong>Remarks:</strong> {selectedFee.fee.remarks}</p>}
+                  </div>
+                  <button type="button" className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={() => window.print()}>Print Receipt</button>
+                </div>
+              )}
             </>
           )}
         </div>

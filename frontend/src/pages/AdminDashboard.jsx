@@ -7,6 +7,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import Modal from '../components/Modal';
 import Spinner from '../components/Spinner';
 import MonitoringDashboard from '../components/MonitoringDashboard';
+import FinanceDashboard from './FinanceDashboard';
 
 const NAV = [
   { id: 'overview', label: 'Overview' },
@@ -16,6 +17,7 @@ const NAV = [
   { id: 'offerings', label: 'Course Offerings' },
   { id: 'enrollments', label: 'Enrollments' },
   { id: 'results', label: 'Approve Results' },
+  { id: 'finance', label: '💰 Finance' },
   { id: 'settings', label: 'Settings' },
   { id: 'activity', label: 'Activity' },
   { id: 'monitoring', label: '📊 Audit & Monitoring' },
@@ -661,6 +663,9 @@ export default function AdminDashboard() {
 
       {/* ═══ MONITORING DASHBOARD ═══ */}
       {tab === 'monitoring' && <MonitoringDashboard />}
+
+      {/* ═══ FINANCE DASHBOARD ═══ */}
+      {tab === 'finance' && <FinanceDashboard />}
     </DashboardLayout>
 
     <Modal open={modal.open} title={modal.title} message={modal.message} onConfirm={modal.onConfirm} onCancel={() => setModal(m => ({ ...m, open: false }))} confirmText={modal.danger ? 'Delete' : 'Confirm'} danger={modal.danger} />

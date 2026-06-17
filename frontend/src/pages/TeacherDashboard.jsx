@@ -13,6 +13,7 @@ const NAV = [
   { id: 'attendance', label: 'Attendance' },
   { id: 'marks', label: 'Marks' },
   { id: 'final', label: 'Final Results' },
+  { id: 'salary', label: 'Salary' },
 ];
 
 export default function TeacherDashboard() {
@@ -30,6 +31,8 @@ export default function TeacherDashboard() {
   const [attDate, setAttDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [marks, setMarks] = useState([]);
   const [finalRows, setFinalRows] = useState([]);
+  const [salaries, setSalaries] = useState([]);
+  const [selectedSalary, setSelectedSalary] = useState(null);
 
   const loadOfferings = useCallback(async () => { const d = await api('offerings'); setOfferings(d.offerings || []); }, []);
   const loadEnrollments = useCallback(async () => { const d = await api('enrollments'); setEnrollments(d.enrollments || []); }, []);
@@ -37,6 +40,7 @@ export default function TeacherDashboard() {
   const loadStudents = useCallback(async () => { if (!offeringId) { setStudents([]); return; } const d = await api('teacher/students', { params: { course_offering_id: offeringId } }); setStudents(d.students || []); }, [offeringId]);
   const loadMarks = useCallback(async () => { if (!offeringId) { setMarks([]); return; } const d = await api('marks', { params: { course_offering_id: offeringId } }); setMarks(d.marks || []); }, [offeringId]);
   const loadFinal = useCallback(async () => { if (!offeringId) { setFinalRows([]); return; } const d = await api('final-results', { params: { course_offering_id: offeringId } }); setFinalRows(d.results || []); }, [offeringId]);
+  const loadSalaries = useCallback(async () => { const d = await api('finance/my-salary'); setSalaries(d.salaries || []); }, []);
 
   useEffect(() => {
     setErr(''); setLoading(true);
@@ -45,10 +49,11 @@ export default function TeacherDashboard() {
         if (tab === 'overview') await loadOfferings();
         if (tab === 'registrations') await loadEnrollments();
         if (['assignments', 'attendance', 'marks', 'final'].includes(tab)) await loadOfferings();
+        if (tab === 'salary') await loadSalaries();
       } catch (e) { setErr(e.message); }
       finally { setLoading(false); }
     })();
-  }, [tab, loadOfferings, loadEnrollments]);
+  }, [tab, loadOfferings, loadEnrollments, loadSalaries]);
 
   useEffect(() => { if (offerings.length && !offeringId) setOfferingId(String(offerings[0].id)); }, [offerings, offeringId]);
 
@@ -318,6 +323,111 @@ export default function TeacherDashboard() {
             </div>
             <button type="button" className="btn btn-primary" style={{ marginTop: '1.5rem' }} onClick={submitFinalsToAdmin} disabled={!offeringId}>Submit All Grades to Admin</button>
           </div>
+        </div>
+      )}
+
+      {tab === 'salary' && (
+        <div className="fade-in">
+          <header className="dashboard-header">
+            <div>
+              <h1 className="page-title">My Salary</h1>
+              <p className="page-subtitle">View your salary details and payment history.</p>
+            </div>
+          </header>
+          <div className="card glass">
+            {loading ? <div className="loading-state"><Spinner /></div> : (
+              <>
+                {/* Salary Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-green-600 font-medium">Total Paid</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-800">
+                      ${salaries.filter(s => s.status === 'paid').reduce((sum, s) => sum + Number(s.amount), 0).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-orange-600 font-medium">Pending</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-800">
+                      ${salaries.filter(s => s.status === 'unpaid').reduce((sum, s) => sum + Number(s.amount), 0).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-blue-600 font-medium">Total Records</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-800">{salaries.length}</p>
+                  </div>
+                </div>
+
+                {/* Salary History Table */}
+                <div className="table-wrap">
+                  <table className="data">
+                    <thead><tr><th>Month</th><th>Year</th><th>Amount</th><th>Payment Date</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {salaries.map((s) => (
+                        <tr key={s.id}>
+                          <td style={{ fontWeight: 600 }}>{new Date(0, s.month - 1).toLocaleString('default', { month: 'long' })}</td>
+                          <td>{s.year}</td>
+                          <td style={{ fontWeight: 600 }}>${Number(s.amount).toFixed(2)}</td>
+                          <td>{s.payment_date ? new Date(s.payment_date).toLocaleDateString() : '-'}</td>
+                          <td><span className={`badge badge-${s.status}`}>{s.status}</span></td>
+                          <td>
+                            {s.status === 'paid' && (
+                              <>
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={async () => { try { const d = await api('finance/salary-slip', { params: { id: s.id } }); setSelectedSalary(d); } catch (e) { setErr(e.message); } }}>View Slip</button>
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => window.open(`/api/finance/salary-slip?id=${s.id}&format=pdf`, '_blank')}>Download PDF</button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {salaries.length === 0 && <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: '2rem' }}>No salary records found.</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+          {selectedSalary && (
+            <div className="card glass" style={{ marginTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3>Salary Slip</h3>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelectedSalary(null)}>Close</button>
+              </div>
+              <div style={{ padding: '1rem', border: '1px solid var(--border-light)', borderRadius: '8px' }}>
+                <p><strong>Employee:</strong> {selectedSalary.employee?.full_name}</p>
+                <p><strong>Employee Code:</strong> {selectedSalary.employee?.employee_code}</p>
+                <p><strong>Role:</strong> {selectedSalary.employee?.role}</p>
+                <hr style={{ margin: '1rem 0' }} />
+                <p><strong>Month:</strong> {new Date(0, selectedSalary.salary.month - 1).toLocaleString('default', { month: 'long' })}</p>
+                <p><strong>Year:</strong> {selectedSalary.salary.year}</p>
+                <p><strong>Amount:</strong> ${Number(selectedSalary.salary.amount).toFixed(2)}</p>
+                <p><strong>Payment Date:</strong> {selectedSalary.salary.payment_date ? new Date(selectedSalary.salary.payment_date).toLocaleDateString() : '-'}</p>
+                <p><strong>Status:</strong> {selectedSalary.salary.status}</p>
+                {selectedSalary.salary.remarks && <p><strong>Remarks:</strong> {selectedSalary.salary.remarks}</p>}
+              </div>
+              <button type="button" className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={() => window.print()}>Print Slip</button>
+            </div>
+          )}
         </div>
       )}
     </DashboardLayout>

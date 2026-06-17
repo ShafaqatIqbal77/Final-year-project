@@ -27,6 +27,7 @@ try {
     require_once __DIR__ . '/audit_handlers.php';
     require_once __DIR__ . '/chatbot_handler.php';
     require_once __DIR__ . '/mailer.php';
+    require_once __DIR__ . '/finance_handlers.php';
 
     $route = $_GET['route'] ?? '';
     if ($route === '') {
@@ -112,6 +113,42 @@ try {
         'GET audit/stats' => handle_monitoring_stats($pdo),
         'GET audit/charts' => handle_monitoring_charts($pdo),
         'GET audit/export' => handle_export_logs($pdo),
+
+        // Finance Module Routes
+        'GET finance/dashboard' => handle_finance_dashboard($pdo),
+        
+        // Fee Management
+        'GET finance/fees' => handle_fees($pdo, 'GET'),
+        'POST finance/fees' => handle_fees($pdo, 'POST'),
+        'PATCH finance/fees' => handle_fees($pdo, 'PATCH'),
+        'DELETE finance/fees' => handle_fees($pdo, 'DELETE'),
+        
+        // Salary Management
+        'GET finance/salaries' => handle_salaries($pdo, 'GET'),
+        'POST finance/salaries' => handle_salaries($pdo, 'POST'),
+        'PATCH finance/salaries' => handle_salaries($pdo, 'PATCH'),
+        'DELETE finance/salaries' => handle_salaries($pdo, 'DELETE'),
+        
+        // Expense Management
+        'GET finance/expenses' => handle_expenses($pdo, 'GET'),
+        'POST finance/expenses' => handle_expenses($pdo, 'POST'),
+        'PATCH finance/expenses' => handle_expenses($pdo, 'PATCH'),
+        'DELETE finance/expenses' => handle_expenses($pdo, 'DELETE'),
+        
+        // Income Management
+        'GET finance/incomes' => handle_incomes($pdo, 'GET'),
+        'POST finance/incomes' => handle_incomes($pdo, 'POST'),
+        'PATCH finance/incomes' => handle_incomes($pdo, 'PATCH'),
+        'DELETE finance/incomes' => handle_incomes($pdo, 'DELETE'),
+        
+        // Finance Reports
+        'GET finance/reports' => handle_finance_reports($pdo),
+        
+        // Teacher/Student Specific
+        'GET finance/my-salary' => handle_my_salary($pdo),
+        'GET finance/my-fees' => handle_my_fees($pdo),
+        'GET finance/fee-receipt' => handle_fee_receipt($pdo),
+        'GET finance/salary-slip' => handle_salary_slip($pdo),
 
         default => json_out(['ok' => false, 'error' => 'Not found', 'route' => $route], 404),
     };
