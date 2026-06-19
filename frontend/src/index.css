@@ -1565,6 +1565,11 @@ select.inp {
 .badge-pending { background: #fef3c7; color: #92400e; }
 .badge-approved { background: #d1fae5; color: #065f46; }
 .badge-rejected { background: #fee2e2; color: #991b1b; }
+.badge-unpaid { background: #fee2e2; color: #991b1b; }
+.badge-partially_paid { background: #fef3c7; color: #92400e; }
+.badge-paid { background: #d1fae5; color: #065f46; }
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-failed { background: #fee2e2; color: #991b1b; }
 .badge-draft { background: #e0e7ff; color: #3730a3; }
 .badge-pending_approval { background: #fef3c7; color: #92400e; }
 .badge-active { background: #d1fae5; color: #065f46; }

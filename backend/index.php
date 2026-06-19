@@ -28,6 +28,7 @@ try {
     require_once __DIR__ . '/chatbot_handler.php';
     require_once __DIR__ . '/mailer.php';
     require_once __DIR__ . '/finance_handlers.php';
+    require_once __DIR__ . '/finance_extended_handlers.php';
 
     $route = $_GET['route'] ?? '';
     if ($route === '') {
@@ -149,6 +150,32 @@ try {
         'GET finance/my-fees' => handle_my_fees($pdo),
         'GET finance/fee-receipt' => handle_fee_receipt($pdo),
         'GET finance/salary-slip' => handle_salary_slip($pdo),
+
+        // Finance Extended Routes
+        'POST finance/collect-fee' => handle_collect_fee($pdo),
+        'GET finance/pending-dues' => handle_pending_dues($pdo),
+        'POST finance/send-reminder' => handle_send_fee_reminder($pdo),
+        'GET finance/fee-structures' => handle_fee_structures($pdo, 'GET'),
+        'POST finance/fee-structures' => handle_fee_structures($pdo, 'POST'),
+        'PATCH finance/fee-structures' => handle_fee_structures($pdo, 'PATCH'),
+        'DELETE finance/fee-structures' => handle_fee_structures($pdo, 'DELETE'),
+        'POST finance/assign-fee' => handle_assign_fee_from_structure($pdo),
+        'GET finance/scholarships' => handle_scholarships($pdo, 'GET'),
+        'POST finance/scholarships' => handle_scholarships($pdo, 'POST'),
+        'PATCH finance/scholarships' => handle_scholarships($pdo, 'PATCH'),
+        'DELETE finance/scholarships' => handle_scholarships($pdo, 'DELETE'),
+        'GET finance/installments' => handle_installments($pdo, 'GET'),
+        'POST finance/installments' => handle_installments($pdo, 'POST'),
+        'GET finance/late-fee-rules' => handle_late_fee_rules($pdo, 'GET'),
+        'POST finance/late-fee-rules' => handle_late_fee_rules($pdo, 'POST'),
+        'PATCH finance/late-fee-rules' => handle_late_fee_rules($pdo, 'PATCH'),
+        'GET finance/online-payments' => handle_online_payment($pdo, 'GET'),
+        'POST finance/online-payments' => handle_online_payment($pdo, 'POST'),
+        'GET finance/notifications' => handle_finance_notifications($pdo, 'GET'),
+        'PATCH finance/notifications' => handle_finance_notifications($pdo, 'PATCH'),
+        'GET finance/audit' => handle_finance_audit($pdo),
+        'POST finance/approve-expense' => handle_approve_expense($pdo),
+        'GET finance/fee-payments' => handle_fee_payments($pdo),
 
         default => json_out(['ok' => false, 'error' => 'Not found', 'route' => $route], 404),
     };

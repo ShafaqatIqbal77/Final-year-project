@@ -97,13 +97,13 @@ function handle_finance_dashboard(PDO $pdo): void
     
     json_out([
         'ok' => true,
-        'stats' => [
+        'stats' => array_merge([
             'total_income' => (float) $totalIncome,
             'total_expenses' => (float) $totalExpenses,
             'total_salaries' => (float) $totalSalaries,
             'net_balance' => (float) $netBalance,
             'pending_dues' => (float) $pendingDues,
-        ],
+        ], function_exists('finance_get_enhanced_dashboard') ? finance_get_enhanced_dashboard($pdo) : []),
         'monthly_revenue' => $monthlyRevenue,
         'monthly_expenses' => $monthlyExpenses,
         'recent_transactions' => $recentTransactions,
@@ -509,6 +509,14 @@ function handle_create_salary(PDO $pdo, array $user): void
     $month = (int) ($in['month'] ?? 0);
     $year = (int) ($in['year'] ?? 0);
     $amount = (float) ($in['amount'] ?? 0);
+    $basicSalary = (float) ($in['basic_salary'] ?? $amount);
+    $allowances = (float) ($in['allowances'] ?? 0);
+    $bonus = (float) ($in['bonus'] ?? 0);
+    $overtime = (float) ($in['overtime'] ?? 0);
+    $deductions = (float) ($in['deductions'] ?? 0);
+    $tax = (float) ($in['tax'] ?? 0);
+    $netSalary = (float) ($in['net_salary'] ?? ($basicSalary + $allowances + $bonus + $overtime - $deductions - $tax));
+    $bankInfo = $in['bank_info'] ?? null;
     $remarks = $in['remarks'] ?? null;
     
     if ($employeeId <= 0) {
@@ -523,8 +531,8 @@ function handle_create_salary(PDO $pdo, array $user): void
         json_out(['ok' => false, 'error' => 'Invalid year'], 422);
     }
     
-    if ($amount <= 0) {
-        json_out(['ok' => false, 'error' => 'Amount must be greater than 0'], 422);
+    if ($netSalary <= 0) {
+        json_out(['ok' => false, 'error' => 'Net salary must be greater than 0'], 422);
     }
     
     // Verify employee exists
@@ -546,14 +554,22 @@ function handle_create_salary(PDO $pdo, array $user): void
     $pdo->beginTransaction();
     try {
         $st = $pdo->prepare('
-            INSERT INTO salaries (employee_id, month, year, amount, status, remarks, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO salaries (employee_id, month, year, amount, basic_salary, allowances, bonus, overtime, deductions, tax, net_salary, bank_info, status, remarks, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ');
         $st->execute([
             $employeeId,
             $month,
             $year,
-            $amount,
+            $netSalary,
+            $basicSalary,
+            $allowances,
+            $bonus,
+            $overtime,
+            $deductions,
+            $tax,
+            $netSalary,
+            $bankInfo,
             'unpaid',
             $remarks,
             $user['id'],
@@ -602,9 +618,13 @@ function handle_update_salary(PDO $pdo, array $user): void
         if ($status !== null) {
             $updates[] = 'status = ?';
             $bindings[] = $status;
-            
+
             if ($status === 'paid') {
                 $updates[] = 'payment_date = CURDATE()';
+                if (function_exists('finance_create_notification')) {
+                    finance_create_notification($pdo, (int) $salary['employee_id'], 'salary_paid',
+                        'Salary Paid', "Your salary for {$salary['month']}/{$salary['year']} has been paid.", 'salary', $salaryId);
+                }
             }
         }
         
@@ -1161,6 +1181,12 @@ function handle_finance_reports(PDO $pdo): void
         case 'profit_loss':
             $data = handle_profit_loss_report($pdo, $dateFrom, $dateTo);
             break;
+        case 'weekly_collection':
+            $data = handle_weekly_collection_report($pdo, $dateFrom, $dateTo);
+            break;
+        case 'income_report':
+            $data = handle_income_report($pdo, $dateFrom, $dateTo);
+            break;
         default:
             json_out(['ok' => false, 'error' => 'Invalid report type'], 400);
     }
@@ -1273,7 +1299,6 @@ function handle_expense_report(PDO $pdo, string $dateFrom, string $dateTo): arra
 
 function handle_profit_loss_report(PDO $pdo, string $dateFrom, string $dateTo): array
 {
-    // Total Income
     $st = $pdo->prepare('
         SELECT COALESCE(SUM(paid_amount), 0) as total
         FROM fees
@@ -1326,6 +1351,35 @@ function handle_profit_loss_report(PDO $pdo, string $dateFrom, string $dateTo): 
         ],
         'net_profit' => (float) $netProfit,
     ];
+}
+
+function handle_weekly_collection_report(PDO $pdo, string $dateFrom, string $dateTo): array
+{
+    $st = $pdo->prepare('
+        SELECT YEARWEEK(payment_date, 1) AS week_num,
+               MIN(DATE(payment_date)) AS week_start,
+               COUNT(*) AS transactions,
+               SUM(paid_amount) AS total_collected
+        FROM fees
+        WHERE payment_date BETWEEN ? AND ?
+        GROUP BY YEARWEEK(payment_date, 1)
+        ORDER BY week_num ASC
+    ');
+    $st->execute([$dateFrom, $dateTo]);
+    return $st->fetchAll();
+}
+
+function handle_income_report(PDO $pdo, string $dateFrom, string $dateTo): array
+{
+    $st = $pdo->prepare('
+        SELECT i.*, u.full_name AS created_by_name
+        FROM incomes i
+        LEFT JOIN users u ON i.created_by = u.id
+        WHERE i.income_date BETWEEN ? AND ?
+        ORDER BY i.income_date DESC
+    ');
+    $st->execute([$dateFrom, $dateTo]);
+    return $st->fetchAll();
 }
 
 // ==================== TEACHER/STUDENT SPECIFIC ENDPOINTS ====================

@@ -331,102 +331,72 @@ export default function TeacherDashboard() {
           <header className="dashboard-header">
             <div>
               <h1 className="page-title">My Salary</h1>
-              <p className="page-subtitle">View your salary details and payment history.</p>
+              <p className="page-subtitle">View salary history, tax details, and download salary slips.</p>
             </div>
           </header>
-          <div className="card glass">
-            {loading ? <div className="loading-state"><Spinner /></div> : (
-              <>
-                {/* Salary Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <span className="text-sm text-green-600 font-medium">Total Paid</span>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-800">
-                      ${salaries.filter(s => s.status === 'paid').reduce((sum, s) => sum + Number(s.amount), 0).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <span className="text-sm text-orange-600 font-medium">Pending</span>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-800">
-                      ${salaries.filter(s => s.status === 'unpaid').reduce((sum, s) => sum + Number(s.amount), 0).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                      </div>
-                      <span className="text-sm text-blue-600 font-medium">Total Records</span>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-800">{salaries.length}</p>
-                  </div>
-                </div>
-
-                {/* Salary History Table */}
+          {loading ? <div className="loading-state"><Spinner /></div> : (
+            <>
+              <div className="grid-stats">
+                <div className="stat-card"><div className="stat-icon green">✅</div><div><div className="lbl">Total Paid</div><div className="val">${salaries.filter((s) => s.status === 'paid').reduce((sum, s) => sum + Number(s.net_salary || s.amount), 0).toFixed(2)}</div></div></div>
+                <div className="stat-card"><div className="stat-icon amber">⏳</div><div><div className="lbl">Pending</div><div className="val">${salaries.filter((s) => s.status === 'unpaid').reduce((sum, s) => sum + Number(s.net_salary || s.amount), 0).toFixed(2)}</div></div></div>
+                <div className="stat-card"><div className="stat-icon indigo">📋</div><div><div className="lbl">Total Records</div><div className="val">{salaries.length}</div></div></div>
+              </div>
+              <div className="card glass">
                 <div className="table-wrap">
                   <table className="data">
-                    <thead><tr><th>Month</th><th>Year</th><th>Amount</th><th>Payment Date</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Month</th><th>Year</th><th>Basic</th><th>Allowances</th><th>Bonus</th><th>Deductions</th><th>Tax</th><th>Net Salary</th><th>Payment Date</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
                       {salaries.map((s) => (
                         <tr key={s.id}>
                           <td style={{ fontWeight: 600 }}>{new Date(0, s.month - 1).toLocaleString('default', { month: 'long' })}</td>
                           <td>{s.year}</td>
-                          <td style={{ fontWeight: 600 }}>${Number(s.amount).toFixed(2)}</td>
-                          <td>{s.payment_date ? new Date(s.payment_date).toLocaleDateString() : '-'}</td>
+                          <td>${Number(s.basic_salary || s.amount).toFixed(2)}</td>
+                          <td>${Number(s.allowances || 0).toFixed(2)}</td>
+                          <td>${Number(s.bonus || 0).toFixed(2)}</td>
+                          <td>${Number(s.deductions || 0).toFixed(2)}</td>
+                          <td>${Number(s.tax || 0).toFixed(2)}</td>
+                          <td style={{ fontWeight: 600 }}>${Number(s.net_salary || s.amount).toFixed(2)}</td>
+                          <td>{s.payment_date ? new Date(s.payment_date).toLocaleDateString() : '—'}</td>
                           <td><span className={`badge badge-${s.status}`}>{s.status}</span></td>
                           <td>
                             {s.status === 'paid' && (
                               <>
                                 <button type="button" className="btn btn-ghost btn-sm" onClick={async () => { try { const d = await api('finance/salary-slip', { params: { id: s.id } }); setSelectedSalary(d); } catch (e) { setErr(e.message); } }}>View Slip</button>
-                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => window.open(`/api/finance/salary-slip?id=${s.id}&format=pdf`, '_blank')}>Download PDF</button>
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => window.open(apiUrl('finance/salary-slip', { id: s.id, format: 'pdf' }), '_blank')}>PDF</button>
                               </>
                             )}
                           </td>
                         </tr>
                       ))}
-                      {salaries.length === 0 && <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: '2rem' }}>No salary records found.</td></tr>}
+                      {salaries.length === 0 && <tr><td colSpan={11} className="muted" style={{ textAlign: 'center', padding: '2rem' }}>No salary records found.</td></tr>}
                     </tbody>
                   </table>
                 </div>
-              </>
-            )}
-          </div>
-          {selectedSalary && (
-            <div className="card glass" style={{ marginTop: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3>Salary Slip</h3>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelectedSalary(null)}>Close</button>
               </div>
-              <div style={{ padding: '1rem', border: '1px solid var(--border-light)', borderRadius: '8px' }}>
-                <p><strong>Employee:</strong> {selectedSalary.employee?.full_name}</p>
-                <p><strong>Employee Code:</strong> {selectedSalary.employee?.employee_code}</p>
-                <p><strong>Role:</strong> {selectedSalary.employee?.role}</p>
-                <hr style={{ margin: '1rem 0' }} />
-                <p><strong>Month:</strong> {new Date(0, selectedSalary.salary.month - 1).toLocaleString('default', { month: 'long' })}</p>
-                <p><strong>Year:</strong> {selectedSalary.salary.year}</p>
-                <p><strong>Amount:</strong> ${Number(selectedSalary.salary.amount).toFixed(2)}</p>
-                <p><strong>Payment Date:</strong> {selectedSalary.salary.payment_date ? new Date(selectedSalary.salary.payment_date).toLocaleDateString() : '-'}</p>
-                <p><strong>Status:</strong> {selectedSalary.salary.status}</p>
-                {selectedSalary.salary.remarks && <p><strong>Remarks:</strong> {selectedSalary.salary.remarks}</p>}
-              </div>
-              <button type="button" className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={() => window.print()}>Print Slip</button>
-            </div>
+              {selectedSalary && (
+                <div className="card glass" style={{ marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3>Salary Slip</h3>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelectedSalary(null)}>Close</button>
+                  </div>
+                  <div style={{ padding: '1rem', border: '1px solid var(--border-light)', borderRadius: '8px' }}>
+                    <p><strong>Employee:</strong> {selectedSalary.employee?.full_name}</p>
+                    <p><strong>Employee Code:</strong> {selectedSalary.employee?.employee_code}</p>
+                    <p><strong>Period:</strong> {new Date(0, selectedSalary.salary.month - 1).toLocaleString('default', { month: 'long' })} {selectedSalary.salary.year}</p>
+                    <hr style={{ margin: '1rem 0' }} />
+                    <p><strong>Basic Salary:</strong> ${Number(selectedSalary.salary.basic_salary || selectedSalary.salary.amount).toFixed(2)}</p>
+                    <p><strong>Allowances:</strong> ${Number(selectedSalary.salary.allowances || 0).toFixed(2)}</p>
+                    <p><strong>Bonus:</strong> ${Number(selectedSalary.salary.bonus || 0).toFixed(2)}</p>
+                    <p><strong>Deductions:</strong> ${Number(selectedSalary.salary.deductions || 0).toFixed(2)}</p>
+                    <p><strong>Tax:</strong> ${Number(selectedSalary.salary.tax || 0).toFixed(2)}</p>
+                    <p><strong>Net Salary:</strong> ${Number(selectedSalary.salary.net_salary || selectedSalary.salary.amount).toFixed(2)}</p>
+                    <p><strong>Payment Status:</strong> {selectedSalary.salary.status}</p>
+                    {selectedSalary.salary.bank_info && <p><strong>Bank Info:</strong> {selectedSalary.salary.bank_info}</p>}
+                  </div>
+                  <button type="button" className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={() => window.print()}>Print Slip</button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

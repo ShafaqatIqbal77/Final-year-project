@@ -7,7 +7,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import Modal from '../components/Modal';
 import Spinner from '../components/Spinner';
 import MonitoringDashboard from '../components/MonitoringDashboard';
-import FinanceDashboard from './FinanceDashboard';
+import FinanceDashboard from '../components/finance/FinanceDashboard';
 
 const NAV = [
   { id: 'overview', label: 'Overview' },
@@ -664,7 +664,7 @@ export default function AdminDashboard() {
       {/* ═══ MONITORING DASHBOARD ═══ */}
       {tab === 'monitoring' && <MonitoringDashboard />}
 
-      {/* ═══ FINANCE DASHBOARD ═══ */}
+      {/* ═══ FINANCE MODULE ═══ */}
       {tab === 'finance' && <FinanceDashboard />}
     </DashboardLayout>
 

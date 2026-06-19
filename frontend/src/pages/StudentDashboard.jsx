@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import DashboardLayout from '../components/DashboardLayout';
 import Spinner from '../components/Spinner';
+import '../components/finance/FinanceDashboard.css';
 
 const NAV = [
   { id: 'catalog', label: 'Course Catalog' },
@@ -30,6 +31,11 @@ export default function StudentDashboard() {
   const [fees, setFees] = useState([]);
   const [feeSummary, setFeeSummary] = useState(null);
   const [selectedFee, setSelectedFee] = useState(null);
+  const [installments, setInstallments] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [payGateway, setPayGateway] = useState('stripe');
+  const [payFeeId, setPayFeeId] = useState('');
+  const [payAmount, setPayAmount] = useState('');
 
   const approved = enrollments.filter((e) => e.status === 'approved');
 
@@ -39,7 +45,17 @@ export default function StudentDashboard() {
   const loadAttendance = useCallback(async () => { if (!offeringId) { setAttendance(null); return; } const d = await api('attendance', { params: { course_offering_id: offeringId } }); setAttendance(d); }, [offeringId]);
   const loadMarks = useCallback(async () => { if (!offeringId) { setMarks([]); return; } const d = await api('marks', { params: { course_offering_id: offeringId } }); setMarks(d.marks || []); }, [offeringId]);
   const loadFinal = useCallback(async () => { if (!offeringId) { setFinalRes(null); return; } const d = await api('final-results', { params: { course_offering_id: offeringId } }); setFinalRes(d.result || null); }, [offeringId]);
-  const loadFees = useCallback(async () => { const d = await api('finance/my-fees'); setFees(d.fees || []); setFeeSummary(d.summary || null); }, []);
+  const loadFees = useCallback(async () => {
+    const [fd, id, nf] = await Promise.all([
+      api('finance/my-fees'),
+      api('finance/installments'),
+      api('finance/notifications'),
+    ]);
+    setFees(fd.fees || []);
+    setFeeSummary(fd.summary || null);
+    setInstallments(id.installments || []);
+    setNotifications(nf.notifications || []);
+  }, []);
 
   useEffect(() => {
     setErr(''); setLoading(true);
@@ -79,6 +95,21 @@ export default function StudentDashboard() {
   }
 
   async function handleLogout() { await logout(); navigate('/login'); }
+
+  async function payOnline(e) {
+    e.preventDefault();
+    if (!payFeeId || !payAmount) { setErr('Select a fee and enter amount'); return; }
+    try {
+      const d = await api('finance/online-payments', { method: 'POST', body: { fee_id: Number(payFeeId), amount: Number(payAmount), gateway: payGateway } });
+      toast(d.message);
+      setPayFeeId('');
+      setPayAmount('');
+      await loadFees();
+    } catch (ex) { setErr(ex.message); }
+  }
+
+  const fmt = (n) => `$${Number(n || 0).toFixed(2)}`;
+  const pendingFees = fees.filter((f) => f.status !== 'paid');
 
   // Attendance percentage color
   const attPct = attendance?.percentage;
@@ -275,84 +306,103 @@ export default function StudentDashboard() {
           <header className="dashboard-header">
             <div>
               <h1 className="page-title">My Fees</h1>
-              <p className="page-subtitle">View your fee history, pending dues, and download receipts.</p>
+              <p className="page-subtitle">View fee structure, pending dues, payment history, and pay online.</p>
             </div>
           </header>
 
           {loading ? <div className="loading-state"><Spinner /></div> : (
             <>
-              {/* Fee Summary Cards */}
               {feeSummary && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <span className="text-sm text-blue-600 font-medium">Total Amount</span>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-800">${Number(feeSummary.total_amount).toFixed(2)}</p>
-                  </div>
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <span className="text-sm text-green-600 font-medium">Total Paid</span>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-800">${Number(feeSummary.total_paid).toFixed(2)}</p>
-                  </div>
-                  <div className={`bg-gradient-to-br ${feeSummary.total_remaining > 0 ? 'from-orange-50 to-orange-100 border-orange-200' : 'from-emerald-50 to-emerald-100 border-emerald-200'} rounded-xl p-6 border`}>
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className={`w-10 h-10 ${feeSummary.total_remaining > 0 ? 'bg-orange-500' : 'bg-emerald-500'} rounded-lg flex items-center justify-center`}>
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <span className={`text-sm ${feeSummary.total_remaining > 0 ? 'text-orange-600' : 'text-emerald-600'} font-medium`}>Remaining</span>
-                    </div>
-                    <p className={`text-2xl font-bold ${feeSummary.total_remaining > 0 ? 'text-orange-600' : 'text-emerald-600'}`}>${Number(feeSummary.total_remaining).toFixed(2)}</p>
-                  </div>
+                <div className="grid-stats">
+                  <div className="stat-card"><div className="stat-icon indigo">💰</div><div><div className="lbl">Total Amount</div><div className="val">{fmt(feeSummary.total_amount)}</div></div></div>
+                  <div className="stat-card"><div className="stat-icon green">✅</div><div><div className="lbl">Total Paid</div><div className="val">{fmt(feeSummary.total_paid)}</div></div></div>
+                  <div className="stat-card"><div className="stat-icon amber">⏳</div><div><div className="lbl">Remaining</div><div className="val" style={{ color: feeSummary.total_remaining > 0 ? 'var(--danger)' : 'var(--success)' }}>{fmt(feeSummary.total_remaining)}</div></div></div>
                 </div>
               )}
 
-              {/* Fees Table */}
+              {pendingFees.length > 0 && (
+                <div className="card glass" style={{ marginBottom: '1rem' }}>
+                  <h3>Online Fee Payment</h3>
+                  <form onSubmit={payOnline} className="stack">
+                    <label>Fee Record
+                      <select className="inp" value={payFeeId} onChange={(e) => { setPayFeeId(e.target.value); const f = fees.find((x) => String(x.id) === e.target.value); if (f) setPayAmount(String(f.remaining_amount)); }}>
+                        <option value="">Select fee to pay</option>
+                        {pendingFees.map((f) => <option key={f.id} value={f.id}>{f.fee_type} — {fmt(f.remaining_amount)} due</option>)}
+                      </select>
+                    </label>
+                    <label>Amount <input className="inp" type="number" step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} required /></label>
+                    <label>Payment Gateway</label>
+                    <div className="finance-gateway-grid">
+                      {['stripe', 'paypal', 'razorpay', 'jazzcash', 'easypaisa', 'bank_transfer'].map((g) => (
+                        <button key={g} type="button" className={`finance-gateway-btn ${payGateway === g ? 'selected' : ''}`} onClick={() => setPayGateway(g)}>{g.replace('_', ' ')}</button>
+                      ))}
+                    </div>
+                    <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>Pay Now</button>
+                  </form>
+                </div>
+              )}
+
               <div className="card glass">
+                <h3>Fee History</h3>
                 <div className="table-wrap">
                   <table className="data">
-                    <thead><tr><th>Fee Type</th><th>Amount</th><th>Discount</th><th>Fine</th><th>Paid</th><th>Remaining</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Fee Type</th><th>Semester</th><th>Amount</th><th>Discount</th><th>Fine</th><th>Paid</th><th>Remaining</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
                       {fees.map((f) => (
                         <tr key={f.id}>
                           <td style={{ fontWeight: 600 }}>{f.fee_type}</td>
-                          <td>${Number(f.amount).toFixed(2)}</td>
-                          <td>${Number(f.discount).toFixed(2)}</td>
-                          <td>${Number(f.fine).toFixed(2)}</td>
-                          <td>${Number(f.paid_amount).toFixed(2)}</td>
-                          <td style={{ fontWeight: 600, color: f.remaining_amount > 0 ? 'var(--danger)' : 'var(--success)' }}>${Number(f.remaining_amount).toFixed(2)}</td>
+                          <td>{f.semester || '—'}</td>
+                          <td>{fmt(f.amount)}</td>
+                          <td>{fmt(f.discount)}</td>
+                          <td>{fmt(f.fine)}</td>
+                          <td>{fmt(f.paid_amount)}</td>
+                          <td style={{ fontWeight: 600, color: f.remaining_amount > 0 ? 'var(--danger)' : 'var(--success)' }}>{fmt(f.remaining_amount)}</td>
                           <td>{new Date(f.due_date).toLocaleDateString()}</td>
-                          <td><span className={`badge badge-${f.status}`}>{f.status.replace('_', ' ')}</span></td>
+                          <td><span className={`badge badge-${f.status}`}>{f.status?.replace('_', ' ')}</span></td>
                           <td>
-                            {f.status === 'paid' && (
+                            {(f.status === 'paid' || f.paid_amount > 0) && (
                               <>
-                                <button type="button" className="btn btn-ghost btn-sm" onClick={async () => { try { const d = await api('finance/fee-receipt', { params: { id: f.id } }); setSelectedFee(d); } catch (e) { setErr(e.message); } }}>View Receipt</button>
-                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => window.open(`/api/finance/fee-receipt?id=${f.id}&format=pdf`, '_blank')}>Download PDF</button>
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={async () => { try { const d = await api('finance/fee-receipt', { params: { id: f.id } }); setSelectedFee(d); } catch (e) { setErr(e.message); } }}>Receipt</button>
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => window.open(apiUrl('finance/fee-receipt', { id: f.id, format: 'pdf' }), '_blank')}>PDF</button>
                               </>
                             )}
                           </td>
                         </tr>
                       ))}
-                      {fees.length === 0 && <tr><td colSpan={9} className="muted" style={{ textAlign: 'center', padding: '2rem' }}>No fee records found.</td></tr>}
+                      {fees.length === 0 && <tr><td colSpan={10} className="muted" style={{ textAlign: 'center', padding: '2rem' }}>No fee records found.</td></tr>}
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              {/* Fee Receipt Modal */}
+              {installments.length > 0 && (
+                <div className="card glass" style={{ marginTop: '1rem' }}>
+                  <h3>Installment Status</h3>
+                  <div className="table-wrap">
+                    <table className="data">
+                      <thead><tr><th>Fee Type</th><th>Total</th><th>Installments</th><th>Per Payment</th><th>Paid</th><th>Next Due</th><th>Status</th></tr></thead>
+                      <tbody>
+                        {installments.map((ip) => (
+                          <tr key={ip.id}><td>{ip.fee_type}</td><td>{fmt(ip.total_amount)}</td><td>{ip.num_installments}</td><td>{fmt(ip.installment_amount)}</td><td>{ip.paid_installments}/{ip.num_installments}</td><td>{ip.next_due_date ? new Date(ip.next_due_date).toLocaleDateString() : '—'}</td><td><span className={`badge badge-${ip.status}`}>{ip.status}</span></td></tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {notifications.filter((n) => !n.is_read).length > 0 && (
+                <div className="card glass" style={{ marginTop: '1rem' }}>
+                  <h3>Payment Notifications</h3>
+                  {notifications.filter((n) => !n.is_read).slice(0, 5).map((n) => (
+                    <div key={n.id} className="finance-notif-item unread">
+                      <strong>{n.title}</strong>
+                      <p className="muted" style={{ margin: '0.25rem 0' }}>{n.message}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {selectedFee && (
                 <div className="card glass" style={{ marginTop: '1rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -362,19 +412,13 @@ export default function StudentDashboard() {
                   <div style={{ padding: '1rem', border: '1px solid var(--border-light)', borderRadius: '8px' }}>
                     <p><strong>Student:</strong> {selectedFee.student?.full_name}</p>
                     <p><strong>Student Code:</strong> {selectedFee.student?.student_code}</p>
-                    <p><strong>Email:</strong> {selectedFee.student?.email}</p>
-                    <p><strong>Phone:</strong> {selectedFee.student?.phone || '-'}</p>
-                    <hr style={{ margin: '1rem 0' }} />
                     <p><strong>Fee Type:</strong> {selectedFee.fee.fee_type}</p>
-                    <p><strong>Amount:</strong> ${Number(selectedFee.fee.amount).toFixed(2)}</p>
-                    <p><strong>Discount:</strong> ${Number(selectedFee.fee.discount).toFixed(2)}</p>
-                    <p><strong>Fine:</strong> ${Number(selectedFee.fee.fine).toFixed(2)}</p>
-                    <p><strong>Paid Amount:</strong> ${Number(selectedFee.fee.paid_amount).toFixed(2)}</p>
-                    <p><strong>Remaining Amount:</strong> ${Number(selectedFee.fee.remaining_amount).toFixed(2)}</p>
-                    <p><strong>Due Date:</strong> {new Date(selectedFee.fee.due_date).toLocaleDateString()}</p>
-                    <p><strong>Payment Date:</strong> {selectedFee.fee.payment_date ? new Date(selectedFee.fee.payment_date).toLocaleDateString() : '-'}</p>
-                    <p><strong>Status:</strong> {selectedFee.fee.status.replace('_', ' ')}</p>
-                    {selectedFee.fee.remarks && <p><strong>Remarks:</strong> {selectedFee.fee.remarks}</p>}
+                    <p><strong>Amount:</strong> {fmt(selectedFee.fee.amount)}</p>
+                    <p><strong>Discount:</strong> {fmt(selectedFee.fee.discount)}</p>
+                    <p><strong>Fine:</strong> {fmt(selectedFee.fee.fine)}</p>
+                    <p><strong>Paid:</strong> {fmt(selectedFee.fee.paid_amount)}</p>
+                    <p><strong>Remaining:</strong> {fmt(selectedFee.fee.remaining_amount)}</p>
+                    <p><strong>Status:</strong> {selectedFee.fee.status?.replace('_', ' ')}</p>
                   </div>
                   <button type="button" className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={() => window.print()}>Print Receipt</button>
                 </div>

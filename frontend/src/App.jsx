@@ -6,7 +6,6 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import StudentDashboard from './pages/StudentDashboard';
-import FinanceDashboard from './pages/FinanceDashboard';
 
 function Protected({ role, children }) {
   const { user, loading } = useAuth();
@@ -33,14 +32,6 @@ export default function App() {
         element={
           <Protected role="admin">
             <AdminDashboard />
-          </Protected>
-        }
-      />
-      <Route
-        path="/admin/finance/*"
-        element={
-          <Protected role="admin">
-            <FinanceDashboard />
           </Protected>
         }
       />
