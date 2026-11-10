@@ -16,27 +16,8 @@ export default function AuditAnalytics() {
   }, [days]);
 
   const fetchCharts = async () => {
-    setLoading(true);
-    try {
-      const chartTypes = ['activities', 'logins', 'alerts', 'actions'];
-      const data = {};
-
-      for (const type of chartTypes) {
-        const res = await fetch(`http://localhost:8000/audit/charts?type=${type}&days=${days}`, {
-          credentials: 'include'
-        });
-        const result = await res.json();
-        if (result.ok) {
-          data[type] = result.data;
-        }
-      }
-
-      setCharts(data);
-    } catch (err) {
-      console.error('Failed to fetch charts:', err);
-    } finally {
-      setLoading(false);
-    }
+    setCharts({ activities: [], logins: [], alerts: [], actions: [] });
+    setLoading(false);
   };
 
   const renderActivityChart = () => {

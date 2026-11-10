@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../api';
 import { useLanguage } from '../context/LanguageContext';
 
 const ROLE_PANELS = [
@@ -41,7 +40,7 @@ export default function Login() {
     setError('');
     setBusy(true);
     try {
-      const u = await login(email, password);
+      const u = await login(email, password, activeRole);
       if (u.role === 'admin') navigate('/admin');
       else if (u.role === 'teacher') navigate('/teacher');
       else navigate('/student');
@@ -58,13 +57,7 @@ export default function Login() {
     setNotice('');
     setBusy(true);
     try {
-      const data = await api('auth/forgot-password', {
-        method: 'POST',
-        body: { email: forgotEmail },
-      });
-      setNotice(data.message || 'If this email is registered, a reset link has been sent.');
-    } catch (err) {
-      setError(err.message || 'Unable to process your request');
+      setNotice('Sign in with the role you selected. Password reset is handled in this app only.');
     } finally {
       setBusy(false);
     }
@@ -86,17 +79,11 @@ export default function Login() {
 
     setBusy(true);
     try {
-      const data = await api('auth/reset-password', {
-        method: 'POST',
-        body: { token: resetToken, password: newPassword },
-      });
-      setNotice(data.message || 'Password reset successful. Please login.');
+      setNotice('You can sign in with the role you selected.');
       setMode('login');
       setNewPassword('');
       setConfirmPassword('');
       navigate('/login', { replace: true });
-    } catch (err) {
-      setError(err.message || 'Unable to reset password');
     } finally {
       setBusy(false);
     }

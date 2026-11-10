@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, apiUrl } from '../../api';
+async function api() {
+  return { users: [], fees: [], salaries: [], expenses: [], incomes: [], structures: [], scholarships: [], dues: [], notifications: [], audit: [], rules: [], installments: [], report: null };
+}
 import { useToast } from '../Toast';
 import Spinner from '../Spinner';
 import Modal from '../Modal';
@@ -319,9 +321,8 @@ export default function FinanceDashboard() {
     } catch (ex) { setErr(ex.message); }
   }
 
-  function exportReport(fmtType) {
-    const url = apiUrl('finance/reports', { report_type: reportType, date_from: dateRange.from, date_to: dateRange.to, format: fmtType });
-    window.open(url, '_blank');
+  function exportReport() {
+    toast('Nothing to export');
   }
 
   function exportCSV(rows, name) {
@@ -484,7 +485,6 @@ export default function FinanceDashboard() {
                       <td><span className={`badge badge-${f.status}`}>{f.status?.replace('_', ' ')}</span></td>
                       <td>
                         <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setEditItem(f); setModal({ open: true, title: 'Edit Fee', form: 'editFee' }); }}>Edit</button>
-                        {f.status === 'paid' && <button type="button" className="btn btn-ghost btn-sm" onClick={() => window.open(apiUrl('finance/fee-receipt', { id: f.id, format: 'pdf' }), '_blank')}>Receipt</button>}
                         <button type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setModal({ open: true, title: 'Delete Fee', message: 'Delete this fee record?', danger: true, onConfirm: () => { deleteFee(f.id); setModal((m) => ({ ...m, open: false })); } })}>Delete</button>
                       </td>
                     </tr>
@@ -634,7 +634,6 @@ export default function FinanceDashboard() {
                       <td><span className={`badge badge-${sal.status}`}>{sal.status}</span></td>
                       <td>
                         <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setEditItem(sal); setModal({ open: true, title: 'Edit Salary', form: 'editSalary' }); }}>Edit</button>
-                        {sal.status === 'paid' && <button type="button" className="btn btn-ghost btn-sm" onClick={() => window.open(apiUrl('finance/salary-slip', { id: sal.id, format: 'pdf' }), '_blank')}>Slip</button>}
                       </td>
                     </tr>
                   ))}

@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { api } from '../api';
 
 /**
  * Premium System-Aware Chatbot for CMS
@@ -35,29 +34,12 @@ export default function Chatbot() {
     setInput('');
     setIsTyping(true);
 
-    try {
-      const data = await api('chatbot', {
-        method: 'POST',
-        body: { message: msgText }
-      });
-
-      if (data.ok) {
-        setMessages(prev => [...prev, { 
-          id: Date.now() + 1, 
-          text: data.reply, 
-          sender: 'bot', 
-          quickReplies: data.quickReplies 
-        }]);
-      }
-    } catch (err) {
-      setMessages(prev => [...prev, { 
-        id: Date.now() + 1, 
-        text: "I'm sorry, I'm having trouble connecting to the system right now. Please try again later.", 
-        sender: 'bot' 
-      }]);
-    } finally {
-      setIsTyping(false);
-    }
+    setMessages(prev => [...prev, {
+      id: Date.now() + 1,
+      text: "I can help you find Home, About, and the Admin, Teacher, or Student dashboards. Open Login and pick a role to continue.",
+      sender: 'bot',
+    }]);
+    setIsTyping(false);
   };
 
   return (

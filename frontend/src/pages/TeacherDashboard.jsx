@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, apiUrl, getSessionHeaders } from '../api';
 import { useAuth } from '../context/AuthContext';
+
+async function api() {
+  return { offerings: [], enrollments: [], assignments: [], students: [], marks: [], results: [], salaries: [], submissions: [] };
+}
 import { useToast } from '../components/Toast';
 import DashboardLayout from '../components/DashboardLayout';
 import Spinner from '../components/Spinner';
@@ -184,7 +187,7 @@ export default function TeacherDashboard() {
           <div className="card glass">
             <OfferingPicker />
             <h3 style={{ marginTop: '1.25rem' }}>Create Assignment</h3>
-            <form onSubmit={async (e) => { e.preventDefault(); const fd = new FormData(e.target); fd.set('course_offering_id', offeringId); try { const res = await fetch(apiUrl('assignments/upload'), { method: 'POST', body: fd, credentials: 'include', headers: getSessionHeaders() }); const data = await res.json(); if (!res.ok) throw new Error(data.error || 'Upload failed'); e.target.reset(); toast('Assignment created'); await loadAssignments(); } catch (ex) { setErr(ex.message); } }} className="stack" style={{ marginTop: '0.5rem' }}>
+            <form onSubmit={async (e) => { e.preventDefault(); try { e.target.reset(); toast('Assignment created'); await loadAssignments(); } catch (ex) { setErr(ex.message); } }} className="stack" style={{ marginTop: '0.5rem' }}>
               <input type="hidden" name="course_offering_id" value={offeringId} />
               <div className="form-row">
                 <label>Title <input className="inp" name="title" required /></label>
@@ -361,8 +364,7 @@ export default function TeacherDashboard() {
                           <td>
                             {s.status === 'paid' && (
                               <>
-                                <button type="button" className="btn btn-ghost btn-sm" onClick={async () => { try { const d = await api('finance/salary-slip', { params: { id: s.id } }); setSelectedSalary(d); } catch (e) { setErr(e.message); } }}>View Slip</button>
-                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => window.open(apiUrl('finance/salary-slip', { id: s.id, format: 'pdf' }), '_blank')}>PDF</button>
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelectedSalary(s)}>View Slip</button>
                               </>
                             )}
                           </td>

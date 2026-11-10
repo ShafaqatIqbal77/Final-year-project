@@ -17,26 +17,8 @@ export default function MonitoringDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStats();
-    const interval = setInterval(fetchStats, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
+    setLoading(false);
   }, []);
-
-  const fetchStats = async () => {
-    try {
-      const res = await fetch('http://localhost:8000/audit/stats', {
-        credentials: 'include'
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setStats(data.data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch stats:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="monitoring-dashboard">

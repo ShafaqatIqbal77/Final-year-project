@@ -1,6 +1,6 @@
-const base = import.meta.env.VITE_API_BASE || 'http://localhost/CMS/backend/index.php';
+const base = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
 
-/** Persists session; sent as X-Session-Id + Authorization Bearer (PHP may drop one of them). */
+/** Persists session; sent as X-Session-Id + Authorization Bearer. */
 export const SESSION_STORAGE_KEY = 'cms_session_id';
 
 function getStoredSessionId() {
@@ -47,6 +47,7 @@ function resolveBase() {
   return base;
 }
 
+// TODO: The "?route=" style will be migrated to REST paths when the Express backend is ready.
 export function apiUrl(route, params = {}) {
   const resolved = resolveBase();
   const u = new URL(resolved, typeof window !== 'undefined' ? window.location.href : 'http://localhost/');

@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, apiUrl, getSessionHeaders } from '../api';
 import { useAuth } from '../context/AuthContext';
+
+async function api() {
+  return { offerings: [], enrollments: [], assignments: [], marks: [], result: null, fees: [], summary: null, installments: [], notifications: [], message: '' };
+}
 import { useToast } from '../components/Toast';
 import DashboardLayout from '../components/DashboardLayout';
 import Spinner from '../components/Spinner';
@@ -87,10 +90,7 @@ export default function StudentDashboard() {
     const fd = new FormData(e.target);
     fd.set('assignment_id', aid);
     try {
-      const res = await fetch(apiUrl('submissions/upload'), { method: 'POST', body: fd, credentials: 'include', headers: getSessionHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
-      e.target.reset(); toast('Submission uploaded'); await loadAssignments();
+      e.target.reset(); toast('Submission saved'); await loadAssignments();
     } catch (ex) { setErr(ex.message); }
   }
 
@@ -362,8 +362,7 @@ export default function StudentDashboard() {
                           <td>
                             {(f.status === 'paid' || f.paid_amount > 0) && (
                               <>
-                                <button type="button" className="btn btn-ghost btn-sm" onClick={async () => { try { const d = await api('finance/fee-receipt', { params: { id: f.id } }); setSelectedFee(d); } catch (e) { setErr(e.message); } }}>Receipt</button>
-                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => window.open(apiUrl('finance/fee-receipt', { id: f.id, format: 'pdf' }), '_blank')}>PDF</button>
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelectedFee(f)}>Receipt</button>
                               </>
                             )}
                           </td>

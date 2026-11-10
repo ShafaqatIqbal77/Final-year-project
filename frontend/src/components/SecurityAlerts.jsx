@@ -32,7 +32,7 @@ export default function SecurityAlerts() {
         if (key === 'unread_only' && value) params.append(key, '1');
       });
 
-      const res = await fetch(`http://localhost:8000/audit/security-alerts?${params}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE}/audit/security-alerts?${params}`, {
         credentials: 'include'
       });
       const data = await res.json();
@@ -58,7 +58,7 @@ export default function SecurityAlerts() {
 
   const handleAcknowledge = async (alertId) => {
     try {
-      const res = await fetch('http://localhost:8000/audit/security-alerts', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE}/audit/security-alerts`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -80,7 +80,7 @@ export default function SecurityAlerts() {
         format: 'csv',
         ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v))
       });
-      window.location.href = `http://localhost:8000/audit/export?${params}`;
+      window.location.href = `${import.meta.env.VITE_API_BASE}/audit/export?${params}`;
     } catch (err) {
       console.error('Export failed:', err);
     }

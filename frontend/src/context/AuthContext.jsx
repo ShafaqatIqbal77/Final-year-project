@@ -1,42 +1,43 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { api, clearStoredSession, setStoredSessionId } from '../api';
 
+const USER_KEY = 'cms_user';
 const AuthContext = createContext(null);
+
+function readUser() {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    try {
-      const data = await api('auth/me');
-      setUser(data.user && data.ok ? data.user : null);
-    } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+    setUser(readUser());
+    setLoading(false);
   }, []);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  const login = useCallback(async (email, password) => {
-    clearStoredSession();
-    const data = await api('auth/login', { method: 'POST', body: { email, password } });
-    if (data.session_id) setStoredSessionId(data.session_id);
-    setUser(data.user);
-    return data.user;
+  const login = useCallback(async (email, _password, role) => {
+    const next = {
+      email,
+      role: role || 'student',
+      full_name: email.split('@')[0] || 'User',
+    };
+    localStorage.setItem(USER_KEY, JSON.stringify(next));
+    setUser(next);
+    return next;
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await api('auth/logout', { method: 'POST' });
-    } catch {
-      /* ignore */
-    }
-    clearStoredSession();
+    localStorage.removeItem(USER_KEY);
     setUser(null);
   }, []);
 

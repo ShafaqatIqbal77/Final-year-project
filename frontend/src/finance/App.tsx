@@ -1,10 +1,10 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { FinanceDashboard } from './pages/FinanceDashboard';
-import { InvoiceBuilder } from './pages/InvoiceBuilder';
-import { AddTransactionModal } from './components/modals/AddTransactionModal';
-import { BudgetFormModal } from './components/modals/BudgetFormModal';
+import { FinanceDashboard } from '../pages/FinanceDashboard';
+import { InvoiceBuilder } from '../pages/InvoiceBuilder';
+import { AddTransactionModal } from '../components/modals/AddTransactionModal';
+import { BudgetFormModal } from '../components/modals/BudgetFormModal';
 
 const queryClient = new QueryClient();
 

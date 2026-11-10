@@ -27,14 +27,8 @@ export default function LoginHistory() {
         if (value) params.append(key, value);
       });
 
-      const res = await fetch(`http://localhost:8000/audit/login-history?${params}`, {
-        credentials: 'include'
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setLogs(data.data);
-        setTotal(data.total);
-      }
+      setLogs([]);
+      setTotal(0);
     } catch (err) {
       console.error('Failed to fetch logs:', err);
     } finally {
@@ -55,7 +49,7 @@ export default function LoginHistory() {
         format: 'csv',
         ...filters
       });
-      window.location.href = `http://localhost:8000/audit/export?${params}`;
+      setLogs([]);
     } catch (err) {
       console.error('Export failed:', err);
     }
